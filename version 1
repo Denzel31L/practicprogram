@@ -1,0 +1,131 @@
+    public partial class MainForm : Form
+    {
+        public MainForm()
+        {
+            InitializeComponent();
+        }
+
+        private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            Application.Exit();
+        }
+        private DataTable dataTable;
+        private SQLiteDataAdapter sqliteDataAdapter;
+        string cab = "";
+        private void DelBut_Click(object sender, EventArgs e)
+        {
+            DialogResult dialogResult = MessageBox.Show("Удалить запись?", "Удаление", MessageBoxButtons.YesNo);
+            if (dialogResult == DialogResult.Yes)
+            {
+                int selectedRowIndex = TabDGV.SelectedRows[0].Index;
+                int id = Convert.ToInt32(TabDGV.Rows[selectedRowIndex].Cells["Id"].Value);
+                string query = $"DELETE FROM {cab} WHERE Id = @Id";
+                using (SQLiteCommand cmd = new SQLiteCommand(query, DB))
+                {
+                    cmd.Parameters.AddWithValue("@Id", id);
+                    cmd.ExecuteNonQuery();
+                }
+
+                dataTable.Rows.RemoveAt(selectedRowIndex);
+            }
+        }
+        SQLiteConnection DB;
+        private async void MainForm_Load(object sender, EventArgs e)
+        {
+            DB = new SQLiteConnection(database.connection);
+            await DB.OpenAsync();
+
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBox1.SelectedIndex == 0)
+            {
+                cab = "cab13";
+                selcab(sender, e);
+            }
+            else if (comboBox1.SelectedIndex == 1)
+            {
+                cab = "cab16";
+                selcab(sender, e);
+            }
+            else if (comboBox1.SelectedIndex == 2)
+            {
+                cab = "cab17";
+                selcab(sender, e);
+            }
+            else if (comboBox1.SelectedIndex == 3)
+            {
+                cab = "cab45";
+                selcab(sender, e);
+            }
+            else if (comboBox1.SelectedIndex == 4)
+            {
+                cab = "cab47";
+                selcab(sender, e);
+            }
+        }
+        private void selcab(object sender, EventArgs e)
+        {
+            TabDGV.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            string query = $"SELECT * FROM {cab}";
+            sqliteDataAdapter = new SQLiteDataAdapter(query, DB);
+            dataTable = new DataTable();
+            sqliteDataAdapter.Fill(dataTable);
+
+            TabDGV.DataSource = dataTable;
+
+            TabDGV.Columns[1].HeaderText = "Наименование";
+            TabDGV.Columns[2].HeaderText = "ID оборудования";
+        }
+
+        private void AddBut_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(NameTB.Text) || string.IsNullOrEmpty(KolTB.Text))
+            {
+                _ = MessageBox.Show("Заполните все поля");
+                return;
+            }
+
+            string name = NameTB.Text;
+            string kol = KolTB.Text;
+
+            SQLiteCommand commandInsert = new SQLiteCommand($"INSERT INTO {cab} (Name,Kol)" +
+                $" VALUES ('{name}', '{kol}')", DB);
+            _ = commandInsert.ExecuteNonQueryAsync();
+            selcab(sender, e);
+        }
+
+        private void EditBut_Click(object sender, EventArgs e)
+        {
+            if (TabDGV.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Пожалуйста, выберите запись для редактирования.");
+                return;
+            }
+
+            int selectedRowIndex = TabDGV.SelectedRows[0].Index;
+            int id = Convert.ToInt32(TabDGV.Rows[selectedRowIndex].Cells["Id"].Value);
+
+            string name = NameTB.Text;
+            string kol = KolTB.Text;
+
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(kol))
+            {
+                MessageBox.Show("Заполните все поля");
+                return;
+            }
+
+            string query = $"UPDATE {cab} SET Name = @Name, Kol = @Kol WHERE Id = @Id";
+            using (SQLiteCommand cmd = new SQLiteCommand(query, DB))
+            {
+                cmd.Parameters.AddWithValue("@Name", name);
+                cmd.Parameters.AddWithValue("@Kol", kol);
+                cmd.Parameters.AddWithValue("@Id", id);
+                cmd.ExecuteNonQuery();
+            }
+
+            selcab(sender, e); // Обновить DataGridView
+        }
+    }
+}
